@@ -1,9 +1,11 @@
-﻿using CookBook.App.Services;
+﻿using System;
+using CookBook.App.Services;
 using CookBook.BL.Interfaces;
 using CookBook.BL.Repositories;
 using CookBook.BL.Repositories.Obsolete;
 using CookBook.BL.Services;
 using CookBook.DAL.Factories;
+using Microsoft.Extensions.Configuration;
 
 namespace CookBook.App.ViewModels
 {
@@ -13,11 +15,16 @@ namespace CookBook.App.ViewModels
         private readonly IMediator mediator;
         private readonly IMessageBoxService messageBoxService;
         private readonly IRecipeRepository recipesRepository;
+        private IConfigurationRoot Configuration;
 
         public ViewModelLocator()
         {
+            var builder = new ConfigurationBuilder()
+                .AddJsonFile(@"appsettings.json", optional: false, reloadOnChange: true);
+
+            Configuration = builder.Build();
             mediator = new Mediator();
-            IDbContextFactory dbContextFactory = new DbContextFactory();
+            IDbContextFactory dbContextFactory = new DbContextFactory(Configuration.GetConnectionString("DefaultConnection"));
 #if DEBUG
             using (var dbx = dbContextFactory.CreateDbContext())
             {
@@ -29,6 +36,7 @@ namespace CookBook.App.ViewModels
             recipesRepository = new RecipeRepository(dbContextFactory);
             messageBoxService = new MessageBoxService();
         }
+
 
         public IngredientListViewModel IngredientListViewModel => new IngredientListViewModel(ingredientRepository, mediator);
 
