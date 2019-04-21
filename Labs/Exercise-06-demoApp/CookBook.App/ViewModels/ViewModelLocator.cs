@@ -1,8 +1,6 @@
-﻿using System;
-using CookBook.App.Services;
+﻿using CookBook.App.Services;
 using CookBook.BL.Interfaces;
 using CookBook.BL.Repositories;
-using CookBook.BL.Repositories.Obsolete;
 using CookBook.BL.Services;
 using CookBook.DAL.Factories;
 using Microsoft.Extensions.Configuration;
@@ -15,16 +13,11 @@ namespace CookBook.App.ViewModels
         private readonly IMediator mediator;
         private readonly IMessageBoxService messageBoxService;
         private readonly IRecipeRepository recipesRepository;
-        private IConfigurationRoot Configuration;
 
         public ViewModelLocator()
         {
-            var builder = new ConfigurationBuilder()
-                .AddJsonFile(@"appsettings.json", optional: false, reloadOnChange: true);
+            var dbContextFactory = CreateDbContextFactory();
 
-            Configuration = builder.Build();
-            mediator = new Mediator();
-            IDbContextFactory dbContextFactory = new DbContextFactory(Configuration.GetConnectionString("DefaultConnection"));
 #if DEBUG
             using (var dbx = dbContextFactory.CreateDbContext())
             {
@@ -32,6 +25,7 @@ namespace CookBook.App.ViewModels
             }
 #endif
 
+            mediator = new Mediator();
             ingredientRepository = new IngredientRepository(dbContextFactory);
             recipesRepository = new RecipeRepository(dbContextFactory);
             messageBoxService = new MessageBoxService();
@@ -49,5 +43,13 @@ namespace CookBook.App.ViewModels
 
         public IngredientAmountDetailViewModel IngredientAmountDetailViewModel =>
             new IngredientAmountDetailViewModel(ingredientRepository, mediator);
+
+        private IDbContextFactory CreateDbContextFactory()
+        {
+            var builder = new ConfigurationBuilder()
+                .AddJsonFile(@"appsettings.json", false, true);
+
+            return new DbContextFactory(builder.Build().GetConnectionString("DefaultConnection"));
+        }
     }
 }
